@@ -1,0 +1,36 @@
+language: c
+os: linux
+dist: trusty
+addons:
+  apt:
+    packages:
+      - build-essential
+      - cmake
+      - libgmp3-dev gengetopt
+      - gengetopt
+      - libpcap-dev
+      - flex
+      - byacc
+      - libjson-c-dev 
+      - pkg-config
+      - libunistring-dev
+      - libsasl2-dev
+      - python-dev
+      - python-pip
+      - libhiredis-dev
+before_install:
+  - pip install --user sh
+  - export PATH=/opt/bin:$PATH
+script: 
+  - mkdir __build
+  - cd __build
+  - cmake -DENABLE_DEVELOPMENT=ON -DWITH_REDIS=ON $TRAVIS_BUILD_DIR
+  - make
+  - cd $TRAVIS_BUILD_DIR
+  - python ./scripts/check_manfile.py
+compiler: clang
+notifications:
+  email:
+  - zmap-devel@umich.edu
+  slack:
+    secure: gLiX4zUhlYMJ0l7kJlb5Wf5CmAynj+WQufThSBPP7XlLZddl6Vql72sJuqwl1ZV75xEsqP05QDulBMJc9AaED7BP53vhngHHgWLwjt026ne5sbA/s98U735jT/qwwFvKWBCYPZ5BQdTmJO3KCyuBJH+tQnptiolog9abksG1WZk=

@@ -1,0 +1,72 @@
+#
+#                                Copyright (C) 2015 by Rafael Santiago
+#
+# This is a free software. You can redistribute it and/or modify under
+# the terms of the GNU General Public License version 2.
+#
+#
+include ../Toolsets.hsl
+
+var sources type list;
+var includes type list;
+var cflags type list;
+var libraries type list;
+var ldflags type list;
+
+var chosen_toolset type string;
+
+pig-utests.preloading() {
+    $chosen_toolset = get_toolset_name();
+}
+
+project pig-utests : toolset $chosen_toolset : $sources, $includes, $cflags, $libraries, $ldflags, "put" ;
+
+pig-utests.prologue() {
+    var exit_code type int;
+    $exit_code = 1;
+    if (hefesto.sys.cd("cutest/src")) {
+        $exit_code = hefesto.sys.forge("cutest", "Forgefile.hsl", "--obj-output-dir=obj --bin-output-dir=lib --toolset=" + $chosen_toolset);
+        hefesto.sys.cd("../..");
+        if ($exit_code == 0) {
+            $sources.ls(".*\\.c$");
+            $ldflags = get_pig_objs();
+            $includes.add_item("cutest/src");
+            $ldflags.add_item("cutest/src/lib/libcutest.a");
+            $ldflags.add_item("-ldl");
+            $ldflags.add_item("-lpthread");
+        }
+    }
+    if ($exit_code != 0) {
+        hefesto.project.abort($exit_code);
+    }
+}
+
+function get_pig_objs() : result type list {
+    var ldflags type list;
+    hefesto.sys.cd("../obj");
+    $ldflags.ls(".*\\.o");
+    var l type int;
+    var obj_file type string;
+    $l = 0;
+    while ($l < $ldflags.count()) {
+        $obj_file = $ldflags.item($l);
+        if ($obj_file.match(".*main\\.o$")) {
+            $ldflags.del_index($l);
+            break;
+        }
+        $l = $l + 1;
+    }
+    hefesto.sys.cd("../utest");
+    result $ldflags;
+}
+
+pig-utests.epilogue() {
+    if (hefesto.sys.last_forge_result() == 0) {
+        var exit_code type int;
+        hefesto.sys.echo("--\n");
+        $exit_code = hefesto.sys.run("bin/put");
+        if ($exit_code != 0) {
+            hefesto.project.abort($exit_code);
+        }
+    }
+}
